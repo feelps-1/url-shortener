@@ -5,12 +5,15 @@ import z from "zod"
 import { authOptions } from "../api/auth/[...nextauth]/route"
 import { nanoid } from "nanoid"
 import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache"
+import { Link } from "@prisma/client"
 
 const formSchema = z.object({
     longLink: z.string().url({ message: "URL inválida" })
 })
 
-export async function createShortLink(values: z.infer<typeof formSchema>) {
+export async function createShortLink(values: z.infer<typeof formSchema>)
+: Promise<{success?: string; error?: string; link?: Link}> {
     const validatedFields = formSchema.safeParse(values)
 
     if (!validatedFields.success) {
@@ -26,14 +29,18 @@ export async function createShortLink(values: z.infer<typeof formSchema>) {
         const { longLink } = validatedFields.data
         const slug = nanoid(7)
 
-        await prisma.link.create({
+        const newLink = await prisma.link.create({
             data: {
                 originalUrl: longLink,
                 slug: slug,
                 userId: session.user.id
             }
         })
+
+        revalidatePath("/dashboard")
+
+        return { success: "Link encurtado com sucesso", link: newLink }
     } catch (error) {
-        return { error: error }
+        return { error: "Não foi possível criar o link. Tente novamente." }
     }
 } 
