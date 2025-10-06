@@ -52,6 +52,7 @@ export default async function Dashboard() {
             <div>
                 <ShorteningLinkForm/>
             </div>
+            <div></div>
         </div>
     )
 }

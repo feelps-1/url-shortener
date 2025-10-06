@@ -49,7 +49,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   // Adicione aqui a relação com seus outros modelos, como o de Link
-  // links         Link[]
+  links         Link[]
 }
 
 model VerificationToken {
@@ -58,4 +58,14 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Link {
+  id String @id @default(cuid())
+  createdAt DateTime @default(now())
+  originalUrl String
+  slug String
+  clicks Int @default(0)
+  userId String
+  user User @relation(fields: [userId], references: [id])
 }

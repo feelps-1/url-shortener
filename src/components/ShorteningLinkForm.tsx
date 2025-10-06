@@ -6,12 +6,16 @@ import z from "zod";
 import { Button } from "./ui/button";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
+import { useTransition } from "react";
+import { createShortLink } from "@/app/dashboard/actions";
 
 const formSchema = z.object({
     longLink: z.string().min(1, { message: "O link não pode estar vazio." }).url({ message: "Por favor, insira uma URL válida." }),
 });
 
 export default function ShorteningLinkForm() {
+    const [isPending, startTransition] = useTransition();
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -20,7 +24,19 @@ export default function ShorteningLinkForm() {
     })
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values)
+        startTransition(() => {
+            createShortLink(values).then((response) => {
+                if (!response) return;
+
+                if ("error" in response && response.error) {
+                    console.error(response.error);
+                }
+                if ("success" in response && response.success) {
+                    console.log(response.success);
+                    form.reset();
+                }
+            });
+        });
     }
 
     return (
@@ -40,7 +56,9 @@ export default function ShorteningLinkForm() {
                     )}
                 />
 
-                <Button type="submit">Encurtar</Button>
+                <Button type="submit" disabled={isPending}>
+                    {isPending ? "Encurtando..." : "Encurtar"}
+                </Button>
             </form>
         </Form>
     )
