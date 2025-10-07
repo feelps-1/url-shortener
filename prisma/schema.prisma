@@ -65,6 +65,8 @@ model Link {
   createdAt DateTime @default(now())
   originalUrl String
   slug String
+  description String?
+  expiresAt DateTime?
   clicks Int @default(0)
   userId String
   user User @relation(fields: [userId], references: [id])

@@ -9,7 +9,9 @@ import { revalidatePath } from "next/cache"
 import { Link } from "@prisma/client"
 
 const formSchema = z.object({
-    longLink: z.string().url({ message: "URL inválida" })
+    longLink: z.string().url({ message: "URL inválida" }),
+    description: z.string().max(100).optional(),
+    expiresAt: z.date().optional()
 })
 
 export async function createShortLink(values: z.infer<typeof formSchema>)
@@ -26,14 +28,16 @@ export async function createShortLink(values: z.infer<typeof formSchema>)
         return { error: "Ação não autorizada. Por favor, faça login novamente." };
     }
     try {
-        const { longLink } = validatedFields.data
+        const { longLink, description, expiresAt } = validatedFields.data
         const slug = nanoid(7)
 
         const newLink = await prisma.link.create({
             data: {
                 originalUrl: longLink,
                 slug: slug,
-                userId: session.user.id
+                userId: session.user.id,
+                description: description,
+                expiresAt: expiresAt,      
             }
         })
 

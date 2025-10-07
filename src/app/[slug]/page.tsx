@@ -18,6 +18,10 @@ export default async function SlugPage({ params }: SlugPageProps) {
         notFound()
     }
 
+    if(link.expiresAt && link.expiresAt < new Date()){
+        notFound()
+    }
+
     await prisma.link.update({
         where: {
             id: link.id

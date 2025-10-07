@@ -21,7 +21,7 @@ export const columns: ColumnDef<Link>[] = [
         header: "Link Original"
     },
     {
-        id: "shortLink", 
+        id: "shortLink",
         header: "Link Curto",
         cell: ({ row }) => {
             const link = row.original;
@@ -55,7 +55,26 @@ export const columns: ColumnDef<Link>[] = [
     {
         accessorKey: "createdAt",
         header: "Criado em"
-    }
+    },
+    {
+        accessorKey: "description",
+        header: "Descrição",
+        cell: ({ row }) => {
+            const description = row.original.description;
+            return <div className="max-w-[200px] truncate" title={description || ""}>{description || "-"}</div>;
+        },
+    },
+    {
+        accessorKey: "expiresAt",
+        header: "Expira em",
+        cell: ({ row }) => {
+            const expiresAt = row.original.expiresAt;
+            if (!expiresAt) {
+                return <div className="text-center">-</div>;
+            }
+            return new Date(expiresAt).toLocaleDateString("pt-BR");
+        },
+    },
 ]
 
 export default function MyLinksTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
