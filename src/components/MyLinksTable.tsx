@@ -2,10 +2,10 @@
 
 import { Link as LinkUrl } from "@prisma/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
+import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable } from "@tanstack/react-table"
 import { Button } from "./ui/button";
-import { Copy, MoreHorizontal } from "lucide-react";
-import { useTransition } from "react";
+import { ArrowUpDown, Copy, MoreHorizontal } from "lucide-react";
+import { useState, useTransition } from "react";
 import { deleteLink } from "@/app/dashboard/actions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { Toggle } from "./ui/toggle";
 import { Switch } from "./ui/switch";
 import LinkStatusToggle from "./LinkStatusToggle";
+import { Input } from "./ui/input";
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -32,7 +33,15 @@ export const columns: ColumnDef<LinkUrl>[] = [
     },
     {
         accessorKey: "isActive",
-        header: "Disponível",
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                    Disponível
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            )
+        },
         cell: ({ row }) => {
             const isActive = row.original
             return (
@@ -50,7 +59,7 @@ export const columns: ColumnDef<LinkUrl>[] = [
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:underline">
-                        {link.originalUrl}
+                    {link.originalUrl}
                 </a>
             )
         }
@@ -85,7 +94,15 @@ export const columns: ColumnDef<LinkUrl>[] = [
     },
     {
         accessorKey: "clicks",
-        header: "Cliques"
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                    Cliques
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            )
+        },
     },
     {
         accessorKey: "createdAt",
@@ -172,53 +189,91 @@ export const columns: ColumnDef<LinkUrl>[] = [
 ]
 
 export default function MyLinksTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+    const [sorting, setSorting] = useState<SortingState>([])
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
     const table = useReactTable({
         data,
         columns,
-        getCoreRowModel: getCoreRowModel()
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        onSortingChange: setSorting,
+        getSortedRowModel: getSortedRowModel(),
+        onColumnFiltersChange: setColumnFilters,
+        getFilteredRowModel: getFilteredRowModel(),
+        state: {
+            sorting,
+            columnFilters
+        }
     })
     return (
-        <div className="overflow-hidden rounded-md border">
-            <Table>
-                <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => {
-                                return (
-                                    <TableHead key={header.id}>
-                                        {header.isPlaceholder ? null :
-                                            flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
-                                    </TableHead>
-                                )
-                            })}
-                        </TableRow>
-                    ))}
-                </TableHeader>
-                <TableBody>
-                    {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
-                            <TableRow
-                                key={row.id}
-                                data-state={row.getIsSelected() && "selected"} >
-                                {row.getVisibleCells().map((cell) => (
-                                    <TableCell key={cell.id}>
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </TableCell>
-                                ))}
+        <div>
+            <div className="flex items-center py-4">
+                <Input
+                    placeholder="Filtrar por link original..."
+                    value={(table.getColumn("originalUrl")?.getFilterValue() as string) ?? ""}
+                    onChange={(event) =>
+                        table.getColumn("originalUrl")?.setFilterValue(event.target.value)
+                    }
+                    className="max-w-sm"
+                />
+            </div>
+            <div className="overflow-hidden rounded-md border">
+                <Table>
+                    <TableHeader>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                            <TableRow key={headerGroup.id}>
+                                {headerGroup.headers.map((header) => {
+                                    return (
+                                        <TableHead key={header.id}>
+                                            {header.isPlaceholder ? null :
+                                                flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                        </TableHead>
+                                    )
+                                })}
                             </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={table.getAllLeafColumns().length} className="h-24 text-center">
-                                Sem resultados
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                        {table.getRowModel().rows?.length ? (
+                            table.getRowModel().rows.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    data-state={row.getIsSelected() && "selected"} >
+                                    {row.getVisibleCells().map((cell) => (
+                                        <TableCell key={cell.id}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={table.getAllLeafColumns().length} className="h-24 text-center">
+                                    Sem resultados
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <Button variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}>
+                    Anterior
+                </Button>
+                <Button variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}>
+                    Próxima
+                </Button>
+            </div>
         </div>
     )
 
