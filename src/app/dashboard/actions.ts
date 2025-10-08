@@ -48,3 +48,25 @@ export async function createShortLink(values: z.infer<typeof formSchema>)
         return { error: "Não foi possível criar o link. Tente novamente." }
     }
 } 
+
+export async function deleteLink(linkId: string){
+    const session = await getServerSession(authOptions)
+
+    if(!session?.user?.id){
+        return { error: "Não autorizado" }
+    }
+
+    try{
+        await prisma.link.delete({
+            where: {
+                id: linkId,
+                userId: session.user.id
+            }
+        })
+
+        revalidatePath("/dashboard/my-links")
+        return { success: "Link excluído com sucesso! "}
+    }catch (error) {
+        return { error: "Não foi possível excluir o link! "}
+    }
+}

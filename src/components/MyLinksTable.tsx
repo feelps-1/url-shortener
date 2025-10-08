@@ -1,17 +1,24 @@
 "use client"
 
-import { Link } from "@prisma/client";
+import { Link as LinkUrl } from "@prisma/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import { Button } from "./ui/button";
-import { Copy } from "lucide-react";
+import { Copy, MoreHorizontal } from "lucide-react";
+import { useTransition } from "react";
+import { deleteLink } from "@/app/dashboard/actions";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import Link from "next/link";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
 }
 
-export const columns: ColumnDef<Link>[] = [
+export const columns: ColumnDef<LinkUrl>[] = [
     {
         accessorKey: "id",
         header: "ID",
@@ -54,7 +61,14 @@ export const columns: ColumnDef<Link>[] = [
     },
     {
         accessorKey: "createdAt",
-        header: "Criado em"
+        header: "Criado em",
+        cell: ({ row }) => {
+            const createdAt = row.original.createdAt;
+            if (!createdAt) {
+                return <div className="text-center">-</div>;
+            }
+            return format(new Date(createdAt), "dd 'de' MMM. 'de' yyyy", { locale: ptBR });
+        },
     },
     {
         accessorKey: "description",
@@ -72,9 +86,69 @@ export const columns: ColumnDef<Link>[] = [
             if (!expiresAt) {
                 return <div className="text-center">-</div>;
             }
-            return new Date(expiresAt).toLocaleDateString("pt-BR");
+            return format(new Date(expiresAt), "dd 'de' MMM. 'de' yyyy", { locale: ptBR });
         },
     },
+    {
+        id: "actions",
+        header: () => null,
+        cell: ({ row }) => {
+            const link = row.original;
+            const [isPending, startTransition] = useTransition();
+
+            const shortUrl = `${process.env.NEXT_PUBLIC_APP_URL}/${link.slug}`;
+
+            const handleDelete = () => {
+                startTransition(() => {
+                    deleteLink(link.id).then((response) => {
+                        // Adicione feedback (toast) aqui, se desejar
+                        if (response.error) console.error(response.error)
+                        if (response.success) console.log(response.success)
+                    });
+                });
+            };
+
+            return (
+                <AlertDialog>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/links/${link.id}/editar`}>Editar</Link>
+                            </DropdownMenuItem>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem className="text-red-600">
+                                    Excluir
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Essa ação não pode ser desfeita. Isso excluirá permanentemente o seu
+                                link dos nossos servidores.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+                                {isPending ? "Excluindo..." : "Continuar"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            );
+        }
+    }
 ]
 
 export default function MyLinksTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
