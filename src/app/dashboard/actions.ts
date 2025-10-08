@@ -1,7 +1,7 @@
 "use server"
 
 import { getServerSession } from "next-auth"
-import z from "zod"
+import z, { success } from "zod"
 import { authOptions } from "../api/auth/[...nextauth]/route"
 import { nanoid } from "nanoid"
 import prisma from "@/lib/prisma";
@@ -68,5 +68,40 @@ export async function deleteLink(linkId: string){
         return { success: "Link excluído com sucesso! "}
     }catch (error) {
         return { error: "Não foi possível excluir o link! "}
+    }
+}
+
+export async function toggleLinkStatus(linkId: string){
+    const session = await getServerSession(authOptions)
+
+    if(!session?.user?.id){
+        return { error: "Não autorizado! "}
+    }
+
+    try{
+        const currentLink = await prisma.link.findUnique({
+            where: {
+                id: linkId,
+                userId: session.user.id
+            }
+        })
+
+        if(!currentLink){
+            return { error: "Link não encontrado ou não pertence a você"}
+        }
+
+        const updatedLink = await prisma.link.update({
+            where: {
+                id: linkId
+            },
+            data: {
+                isActive: !currentLink.isActive
+            }
+        })
+
+        revalidatePath("/dashboard/my-links")
+        return { success: `Link ${updatedLink.isActive ? "ativado" : "desativado"}`}
+    }catch(error){
+        return {error: "Não foi possível alterar o status do link"}
     }
 }

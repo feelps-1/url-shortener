@@ -12,6 +12,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import Link from "next/link";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Toggle } from "./ui/toggle";
+import { Switch } from "./ui/switch";
+import LinkStatusToggle from "./LinkStatusToggle";
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -20,12 +23,37 @@ interface DataTableProps<TData, TValue> {
 
 export const columns: ColumnDef<LinkUrl>[] = [
     {
-        accessorKey: "id",
-        header: "ID",
+        accessorKey: "description",
+        header: "Descrição",
+        cell: ({ row }) => {
+            const description = row.original.description;
+            return <div className="max-w-[200px] truncate" title={description || ""}>{description || "-"}</div>;
+        },
+    },
+    {
+        accessorKey: "isActive",
+        header: "Disponível",
+        cell: ({ row }) => {
+            const isActive = row.original
+            return (
+                <LinkStatusToggle link={isActive}></LinkStatusToggle>
+            )
+        }
     },
     {
         accessorKey: "originalUrl",
-        header: "Link Original"
+        header: "Link Original",
+        cell: ({ row }) => {
+            const link = row.original
+            return (
+                <a href={link.originalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline">
+                        {link.originalUrl}
+                </a>
+            )
+        }
     },
     {
         id: "shortLink",
@@ -68,14 +96,6 @@ export const columns: ColumnDef<LinkUrl>[] = [
                 return <div className="text-center">-</div>;
             }
             return format(new Date(createdAt), "dd 'de' MMM. 'de' yyyy", { locale: ptBR });
-        },
-    },
-    {
-        accessorKey: "description",
-        header: "Descrição",
-        cell: ({ row }) => {
-            const description = row.original.description;
-            return <div className="max-w-[200px] truncate" title={description || ""}>{description || "-"}</div>;
         },
     },
     {

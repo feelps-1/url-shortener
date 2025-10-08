@@ -67,6 +67,7 @@ model Link {
   slug String
   description String?
   expiresAt DateTime?
+  isActive Boolean @default(true)
   clicks Int @default(0)
   userId String
   user User @relation(fields: [userId], references: [id])

@@ -18,7 +18,7 @@ export default async function SlugPage({ params }: SlugPageProps) {
         notFound()
     }
 
-    if(link.expiresAt && link.expiresAt < new Date()){
+    if(!link.isActive || link.expiresAt && link.expiresAt < new Date()){
         notFound()
     }
 
